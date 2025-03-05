@@ -3,228 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Status Tracker</title>
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <title>QR Code Scanner with Signature Capture</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-      }
-        .button-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
-            max-width: 300px;
-            margin: 0 auto;
-        }
-        button {
-            width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            border: none;
-            cursor: pointer;
-            transition: 0.3s;
-            border-radius: 5px;
-        }
-        .pending { background-color: #f0ad4e; color: white; }
-        .completed { background-color: #5cb85c; color: white; }
-        .disabled { background-color: #ccc; cursor: not-allowed; }
-        .modal {
-            display: none;
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            width: 90%;
-            max-width: 400px;
-            margin: 10% auto;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        #qrScanner {
-            width: 100%;
-            height: 300px;
-        }
-        canvas {
-            border: 1px solid #ccc;
-            width: 100%;
-            height: 150px;
-        }
-        #signatureDisplay {
-            max-width: 100%;
-            border: 2px solid black;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 10px; }
+        button { margin: 10px auto; padding: 12px 20px; font-size: 16px; cursor: pointer; width: 90%; max-width: 300px; display: block; }
+        .completed { background-color: green; color: white; cursor: not-allowed; }
+        .disabled { background-color: grey; color: white; cursor: not-allowed; }
+        .popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                 background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.3); width: 90%; max-width: 350px; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        canvas { border: 1px solid black; width: 100%; height: 100px; }
+        #qr-reader { width: 100%; max-width: 300px; margin: auto; }
     </style>
 </head>
 <body>
 
-<h2>Delivery Status Tracker</h2>
+    <h2>Interactive Event Booth</h2>
 
-<div class="button-container">
-    <button class="pending" id="pickup" onclick="openQRScanner('pickup')">Pickup</button>
-    <button class="pending" id="in-transit" onclick="openQRScanner('in-transit')">In Transit</button>
-    <button class="pending" id="delivered" onclick="openQRScanner('delivered')">Delivered</button>
-    <button class="pending" id="signature" onclick="openSignatureModal()">Signature</button>
-    <button class="disabled" id="pod" disabled onclick="showSignaturePOD()">Proof of Delivery (POD)</button>
-</div>
+    <!-- Activity Buttons -->
+    <button id="registrationBtn" onclick="openQRScanner('registration')">Registration</button>
+    <button id="funQuizBtn" onclick="openQRScanner('funQuiz')">Fun Quiz</button>
+    <button id="vrBtn" onclick="openQRScanner('vr')">VR</button>
+    <button id="schenkerConnectBtn" onclick="openQRScanner('schenkerConnect')">SchenkerConnect</button>
+    <button id="smartLogisticsBtn" onclick="openQRScanner('smartLogistics')">Smart Logistics</button>
 
-<!-- QR Scanner Modal -->
-<div id="qrScannerModal" class="modal">
-    <div class="modal-content">
+    <!-- QR Scanner Popup -->
+    <div class="overlay" id="qrOverlay"></div>
+    <div class="popup" id="qrPopup">
         <h3>Scan QR Code</h3>
-        <div id="qrScanner"></div>
-        <br>
-        <button onclick="closeQRScanner()">Cancel</button>
+        <div id="qr-reader"></div>
+        <button onclick="closeQRScanner()">Close</button>
     </div>
-</div>
 
-<!-- Signature Modal -->
-<div id="signatureModal" class="modal">
-    <div class="modal-content">
-        <h3>Capture Signature</h3>
-        <canvas id="signaturePad"></canvas>
-        <br>
+    <!-- Signature Button (Initially Disabled) -->
+    <button id="signatureBtn" class="disabled" onclick="openSignaturePopup()" disabled>Touch Screen (Signature)</button>
+
+    <!-- Signature Capture Popup -->
+    <div class="overlay" id="signatureOverlay"></div>
+    <div class="popup" id="signaturePopup">
+        <h3>Sign Below</h3>
+        <canvas id="signaturePad"></canvas><br>
         <button onclick="clearSignature()">Clear</button>
-        <button id="confirmSignature">Confirm</button>
-        <button onclick="closeSignatureModal()">Cancel</button>
+        <button onclick="saveSignature()">Save</button>
     </div>
-</div>
 
-<!-- Signature Display Modal -->
-<div id="signaturePODModal" class="modal">
-    <div class="modal-content">
-        <h3>Thank You! Proof of Delivery Confirmed</h3>
-        <img id="signatureDisplay" alt="Signature">
-        <br><br>
-        <button onclick="markPODCompleted()">OK</button>
+    <!-- Thank You Popup -->
+    <div class="overlay" id="thankYouOverlay"></div>
+    <div class="popup" id="thankYouPopup">
+        <h3>Electronic Proof of Delivery</h3>
+        <p>DB Schenker | landbridge</p>
+        <img id="savedSignature" alt="Signature" width="100%">
+        <button onclick="closeThankYou()">Close</button>
     </div>
-</div>
 
-<script>
-    let currentButtonId = null;
-    let scanner;
-    let signatureDataURL = "";
+    <script>
+        let currentAction = "";
+        let signaturePad = document.getElementById("signaturePad");
+        let ctx = signaturePad.getContext("2d");
+        let drawing = false;
+        let scanner = null;
 
-    function openQRScanner(buttonId) {
-        currentButtonId = buttonId;
-        document.getElementById("qrScannerModal").style.display = "block";
+        // Open QR Scanner Popup
+        function openQRScanner(action) {
+            currentAction = action;
+            document.getElementById("qrOverlay").style.display = "block";
+            document.getElementById("qrPopup").style.display = "block";
 
-        // If scanner already exists, stop it first
-        if (scanner) {
-            scanner.stop().catch(err => console.warn("Error stopping scanner:", err));
-        }
-
-        scanner = new Html5Qrcode("qrScanner");
-
-        // Debugging message
-        console.log("Initializing QR Scanner...");
-
-        scanner.start(
-            { facingMode: "environment" },  // Use back camera
-            { fps: 10, qrbox: 250 },
-            (decodedText) => {
-                console.log("QR Code detected: ", decodedText);
-                if (decodedText === "123456") {
-                    completeAction();
-                    scanner.stop();
+            scanner = new Html5Qrcode("qr-reader");
+            scanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 250 },
+                qrCodeMessage => {
+                    if (qrCodeMessage === "123456") {
+                        let button = document.getElementById(action + "Btn");
+                        button.classList.add("completed");
+                        button.innerText = action.replace(/^\w/, c => c.toUpperCase()) + " - Completed";
+                        button.setAttribute("disabled", "true"); // Disable button after completion
+                        checkAllCompleted();
+                    }
                     closeQRScanner();
-                } else {
-                    alert("Invalid QR Code! Please scan again.");
-                }
-            },
-            (error) => {
-                console.warn("QR Scanner error: ", error);
+                },
+                errorMessage => { console.log(errorMessage); }
+            );
+        }
+
+        // Close QR Scanner Popup
+        function closeQRScanner() {
+            if (scanner) {
+                scanner.stop().then(() => {
+                    document.getElementById("qrOverlay").style.display = "none";
+                    document.getElementById("qrPopup").style.display = "none";
+                }).catch(err => console.log(err));
             }
-        ).catch(err => {
-            console.error("Camera access error:", err);
-            alert("Failed to access the camera. Check browser permissions.");
-        });
-    }
-
-    function closeQRScanner() {
-        if (scanner) {
-            scanner.stop().then(() => {
-                console.log("QR Scanner stopped.");
-            }).catch(err => console.error("Error stopping scanner:", err));
         }
-        document.getElementById("qrScannerModal").style.display = "none";
-    }
 
-    function completeAction() {
-        if (currentButtonId) {
-            let button = document.getElementById(currentButtonId);
-            button.classList.remove("pending");
-            button.classList.add("completed");
-            button.disabled = true;
-            checkAllCompleted();
+        // Open Signature Capture Popup
+        function openSignaturePopup() {
+            document.getElementById("signatureOverlay").style.display = "block";
+            document.getElementById("signaturePopup").style.display = "block";
         }
-    }
 
-    function checkAllCompleted() {
-        let buttons = document.querySelectorAll(".button-container button:not(#pod)");
-        let allCompleted = Array.from(buttons).every(btn => btn.classList.contains("completed"));
+        // Save Signature and Show Thank You Popup
+        function saveSignature() {
+            document.getElementById("signatureOverlay").style.display = "none";
+            document.getElementById("signaturePopup").style.display = "none";
+            
+            // Mark Signature Button as Completed and Disable it
+            let sigBtn = document.getElementById("signatureBtn");
+            sigBtn.classList.add("completed");
+            sigBtn.innerText = "Touch Screen (Signature) - Captured";
+            sigBtn.setAttribute("disabled", "true");
 
-        if (allCompleted) {
-            let pod = document.getElementById("pod");
-            pod.classList.remove("disabled");
-            pod.classList.add("pending");
-            pod.disabled = false;
+            // Show Thank You Popup
+            let signatureImage = signaturePad.toDataURL();
+            document.getElementById("savedSignature").src = signatureImage;
+            document.getElementById("thankYouOverlay").style.display = "block";
+            document.getElementById("thankYouPopup").style.display = "block";
         }
-    }
 
-    function openSignatureModal() {
-        document.getElementById("signatureModal").style.display = "block";
-        clearSignature();
-    }
+        // Signature Drawing
+        signaturePad.addEventListener("touchstart", startDrawing);
+        signaturePad.addEventListener("touchend", stopDrawing);
+        signaturePad.addEventListener("touchmove", draw);
+        signaturePad.addEventListener("mousedown", startDrawing);
+        signaturePad.addEventListener("mouseup", stopDrawing);
+        signaturePad.addEventListener("mousemove", draw);
 
-    function closeSignatureModal() {
-        document.getElementById("signatureModal").style.display = "none";
-    }
-
-    function clearSignature() {
-        let canvas = document.getElementById("signaturePad");
-        let ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    function saveSignature() {
-        let canvas = document.getElementById("signaturePad");
-        signatureDataURL = canvas.toDataURL();
-        document.getElementById("signature").classList.add("completed");
-        document.getElementById("signature").disabled = true;
-        closeSignatureModal();
-        checkAllCompleted();
-    }
-
-    document.getElementById("confirmSignature").onclick = saveSignature;
-
-    function showSignaturePOD() {
-        if (signatureDataURL) {
-            document.getElementById("signatureDisplay").src = signatureDataURL;
-            document.getElementById("signaturePODModal").style.display = "block";
+        function startDrawing(event) {
+            drawing = true;
+            ctx.beginPath();
+            event.preventDefault();
         }
-    }
 
-    function markPODCompleted() {
-        let podButton = document.getElementById("pod");
-        podButton.classList.remove("pending");
-        podButton.classList.add("completed");
-        podButton.disabled = true;
-        document.getElementById("signaturePODModal").style.display = "none";
-    }
-</script>
+        function stopDrawing(event) {
+            drawing = false;
+            ctx.beginPath();
+            event.preventDefault();
+        }
+
+        function draw(event) {
+            if (!drawing) return;
+            let rect = signaturePad.getBoundingClientRect();
+            let x = (event.clientX || event.touches[0].clientX) - rect.left;
+            let y = (event.clientY || event.touches[0].clientY) - rect.top;
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "black";
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, signaturePad.width, signaturePad.height);
+        }
+
+        function closeThankYou() {
+            document.getElementById("thankYouOverlay").style.display = "none";
+            document.getElementById("thankYouPopup").style.display = "none";
+        }
+
+        // Check if all QR buttons are completed to enable signature button
+        function checkAllCompleted() {
+            let buttons = ["registrationBtn", "funQuizBtn", "vrBtn", "schenkerConnectBtn", "smartLogisticsBtn"];
+            let allCompleted = buttons.every(id => document.getElementById(id).classList.contains("completed"));
+
+            if (allCompleted) {
+                let sigBtn = document.getElementById("signatureBtn");
+                sigBtn.classList.remove("disabled");
+                sigBtn.removeAttribute("disabled");
+            }
+        }
+    </script>
 
 </body>
 </html>
