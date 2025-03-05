@@ -46,26 +46,22 @@
             width: 100%; height: 100%; 
             background: rgba(0,0,0,0.5); 
         }
-        canvas { border: 1px solid black; width: 100%; height: 100px; }
+        canvas { border: 1px solid black; width: 100%; height: 150px; touch-action: none; }
         #qr-reader { width: 100%; max-width: 300px; margin: auto; }
         .logo { width: 150px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- DB Schenker Logo -->
     <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/DB_Schenker_Logo.svg" alt="DB Schenker" class="logo">
-
     <h2>Interactive Event Booth</h2>
 
-    <!-- Activity Buttons -->
     <button id="registrationBtn" onclick="openQRScanner('registration')">Registration</button>
     <button id="funQuizBtn" onclick="openQRScanner('funQuiz')">Fun Quiz</button>
     <button id="vrBtn" onclick="openQRScanner('vr')">VR</button>
     <button id="schenkerConnectBtn" onclick="openQRScanner('schenkerConnect')">SchenkerConnect</button>
     <button id="smartLogisticsBtn" onclick="openQRScanner('smartLogistics')">Smart Logistics</button>
 
-    <!-- QR Scanner Popup -->
     <div class="overlay" id="qrOverlay"></div>
     <div class="popup" id="qrPopup">
         <h3>Scan QR Code</h3>
@@ -73,10 +69,8 @@
         <button onclick="closeQRScanner()">Close</button>
     </div>
 
-    <!-- Signature Button (Initially Disabled) -->
     <button id="signatureBtn" class="disabled" onclick="openSignaturePopup()" disabled>Touch Screen (Signature)</button>
 
-    <!-- Signature Capture Popup -->
     <div class="overlay" id="signatureOverlay"></div>
     <div class="popup" id="signaturePopup">
         <h3>Sign Below</h3>
@@ -85,7 +79,6 @@
         <button onclick="saveSignature()">Save</button>
     </div>
 
-    <!-- Thank You Popup -->
     <div class="overlay" id="thankYouOverlay"></div>
     <div class="popup" id="thankYouPopup">
         <h3>Electronic Proof of Delivery</h3>
@@ -102,7 +95,13 @@
         let drawing = false;
         let scanner = null;
 
-        // Open QR Scanner Popup
+        function resizeCanvas() {
+            let ratio = Math.max(window.devicePixelRatio || 1, 1);
+            signaturePad.width = signaturePad.offsetWidth * ratio;
+            signaturePad.height = signaturePad.offsetHeight * ratio;
+            ctx.scale(ratio, ratio);
+        }
+
         function openQRScanner(action) {
             currentAction = action;
             document.getElementById("qrOverlay").style.display = "block";
@@ -117,16 +116,15 @@
                         let button = document.getElementById(action + "Btn");
                         button.classList.add("completed");
                         button.innerText = action.replace(/^\w/, c => c.toUpperCase()) + " - Completed";
-                        button.setAttribute("disabled", "true"); // Disable button after completion
+                        button.setAttribute("disabled", "true");
                         checkAllCompleted();
-                        closeQRScanner(); // Close popup after scanning
+                        closeQRScanner();
                     }
                 },
                 errorMessage => { console.log(errorMessage); }
             );
         }
 
-        // Close QR Scanner Popup
         function closeQRScanner() {
             if (scanner) {
                 scanner.stop().then(() => {
@@ -136,42 +134,55 @@
             }
         }
 
-        // Open Signature Capture Popup
         function openSignaturePopup() {
+            resizeCanvas();
             document.getElementById("signatureOverlay").style.display = "block";
             document.getElementById("signaturePopup").style.display = "block";
         }
 
-        // Save Signature and Show Thank You Popup
         function saveSignature() {
             document.getElementById("signatureOverlay").style.display = "none";
             document.getElementById("signaturePopup").style.display = "none";
             
-            // Mark Signature Button as Completed and Disable it
             let sigBtn = document.getElementById("signatureBtn");
             sigBtn.classList.add("completed");
             sigBtn.innerText = "Touch Screen (Signature) - Captured";
             sigBtn.setAttribute("disabled", "true");
 
-            // Show Thank You Popup
             let signatureImage = signaturePad.toDataURL();
             document.getElementById("savedSignature").src = signatureImage;
             document.getElementById("thankYouOverlay").style.display = "block";
             document.getElementById("thankYouPopup").style.display = "block";
         }
 
-        // Signature Drawing
         signaturePad.addEventListener("mousedown", startDrawing);
         signaturePad.addEventListener("mouseup", stopDrawing);
         signaturePad.addEventListener("mousemove", draw);
 
-        function startDrawing(event) { drawing = true; ctx.beginPath(); event.preventDefault(); }
-        function stopDrawing(event) { drawing = false; ctx.beginPath(); event.preventDefault(); }
+        signaturePad.addEventListener("touchstart", startDrawing, { passive: false });
+        signaturePad.addEventListener("touchend", stopDrawing, { passive: false });
+        signaturePad.addEventListener("touchmove", draw, { passive: false });
+
+        function startDrawing(event) { 
+            drawing = true; 
+            ctx.beginPath();
+            event.preventDefault(); 
+        }
+
+        function stopDrawing(event) { 
+            drawing = false; 
+            ctx.beginPath();
+            event.preventDefault();
+        }
+
         function draw(event) {
             if (!drawing) return;
+            event.preventDefault();
+
             let rect = signaturePad.getBoundingClientRect();
-            let x = event.clientX - rect.left;
-            let y = event.clientY - rect.top;
+            let x = (event.touches ? event.touches[0].clientX : event.clientX) - rect.left;
+            let y = (event.touches ? event.touches[0].clientY : event.clientY) - rect.top;
+
             ctx.lineWidth = 2;
             ctx.lineCap = "round";
             ctx.strokeStyle = "black";
@@ -185,20 +196,15 @@
 
         function closeThankYou() { 
             document.getElementById("thankYouOverlay").style.display = "none"; 
-            document.getElementById("thankYouPopup").style.display = "none"; 
         }
 
-        // Enable Signature Button When All Activities Are Completed
         function checkAllCompleted() {
             let buttons = ["registrationBtn", "funQuizBtn", "vrBtn", "schenkerConnectBtn", "smartLogisticsBtn"];
-            let allCompleted = buttons.every(id => document.getElementById(id).classList.contains("completed"));
-            if (allCompleted) {
-                let sigBtn = document.getElementById("signatureBtn");
-                sigBtn.classList.remove("disabled");
-                sigBtn.removeAttribute("disabled");
+            if (buttons.every(id => document.getElementById(id).classList.contains("completed"))) {
+                document.getElementById("signatureBtn").classList.remove("disabled");
+                document.getElementById("signatureBtn").removeAttribute("disabled");
             }
         }
     </script>
-
 </body>
 </html>
