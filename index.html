@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Status Tracker</title>
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+      }
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 5px;
+        }
+        .pending { background-color: #f0ad4e; color: white; }
+        .completed { background-color: #5cb85c; color: white; }
+        .disabled { background-color: #ccc; cursor: not-allowed; }
+        .modal {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        #qrScanner {
+            width: 100%;
+            height: 300px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            width: 100%;
+            height: 150px;
+        }
+        #signatureDisplay {
+            max-width: 100%;
+            border: 2px solid black;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Delivery Status Tracker</h2>
+
+<div class="button-container">
+    <button class="pending" id="pickup" onclick="openQRScanner('pickup')">Pickup</button>
+    <button class="pending" id="in-transit" onclick="openQRScanner('in-transit')">In Transit</button>
+    <button class="pending" id="delivered" onclick="openQRScanner('delivered')">Delivered</button>
+    <button class="pending" id="signature" onclick="openSignatureModal()">Signature</button>
+    <button class="disabled" id="pod" disabled onclick="showSignaturePOD()">Proof of Delivery (POD)</button>
+</div>
+
+<!-- QR Scanner Modal -->
+<div id="qrScannerModal" class="modal">
+    <div class="modal-content">
+        <h3>Scan QR Code</h3>
+        <div id="qrScanner"></div>
+        <br>
+        <button onclick="closeQRScanner()">Cancel</button>
+    </div>
+</div>
+
+<!-- Signature Modal -->
+<div id="signatureModal" class="modal">
+    <div class="modal-content">
+        <h3>Capture Signature</h3>
+        <canvas id="signaturePad"></canvas>
+        <br>
+        <button onclick="clearSignature()">Clear</button>
+        <button id="confirmSignature">Confirm</button>
+        <button onclick="closeSignatureModal()">Cancel</button>
+    </div>
+</div>
+
+<!-- Signature Display Modal -->
+<div id="signaturePODModal" class="modal">
+    <div class="modal-content">
+        <h3>Thank You! Proof of Delivery Confirmed</h3>
+        <img id="signatureDisplay" alt="Signature">
+        <br><br>
+        <button onclick="markPODCompleted()">OK</button>
+    </div>
+</div>
+
+<script>
+    let currentButtonId = null;
+    let scanner;
+    let signatureDataURL = "";
+
+    function openQRScanner(buttonId) {
+        currentButtonId = buttonId;
+        document.getElementById("qrScannerModal").style.display = "block";
+
+        // If scanner already exists, stop it first
+        if (scanner) {
+            scanner.stop().catch(err => console.warn("Error stopping scanner:", err));
+        }
+
+        scanner = new Html5Qrcode("qrScanner");
+
+        // Debugging message
+        console.log("Initializing QR Scanner...");
+
+        scanner.start(
+            { facingMode: "environment" },  // Use back camera
+            { fps: 10, qrbox: 250 },
+            (decodedText) => {
+                console.log("QR Code detected: ", decodedText);
+                if (decodedText === "123456") {
+                    completeAction();
+                    scanner.stop();
+                    closeQRScanner();
+                } else {
+                    alert("Invalid QR Code! Please scan again.");
+                }
+            },
+            (error) => {
+                console.warn("QR Scanner error: ", error);
+            }
+        ).catch(err => {
+            console.error("Camera access error:", err);
+            alert("Failed to access the camera. Check browser permissions.");
+        });
+    }
+
+    function closeQRScanner() {
+        if (scanner) {
+            scanner.stop().then(() => {
+                console.log("QR Scanner stopped.");
+            }).catch(err => console.error("Error stopping scanner:", err));
+        }
+        document.getElementById("qrScannerModal").style.display = "none";
+    }
+
+    function completeAction() {
+        if (currentButtonId) {
+            let button = document.getElementById(currentButtonId);
+            button.classList.remove("pending");
+            button.classList.add("completed");
+            button.disabled = true;
+            checkAllCompleted();
+        }
+    }
+
+    function checkAllCompleted() {
+        let buttons = document.querySelectorAll(".button-container button:not(#pod)");
+        let allCompleted = Array.from(buttons).every(btn => btn.classList.contains("completed"));
+
+        if (allCompleted) {
+            let pod = document.getElementById("pod");
+            pod.classList.remove("disabled");
+            pod.classList.add("pending");
+            pod.disabled = false;
+        }
+    }
+
+    function openSignatureModal() {
+        document.getElementById("signatureModal").style.display = "block";
+        clearSignature();
+    }
+
+    function closeSignatureModal() {
+        document.getElementById("signatureModal").style.display = "none";
+    }
+
+    function clearSignature() {
+        let canvas = document.getElementById("signaturePad");
+        let ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function saveSignature() {
+        let canvas = document.getElementById("signaturePad");
+        signatureDataURL = canvas.toDataURL();
+        document.getElementById("signature").classList.add("completed");
+        document.getElementById("signature").disabled = true;
+        closeSignatureModal();
+        checkAllCompleted();
+    }
+
+    document.getElementById("confirmSignature").onclick = saveSignature;
+
+    function showSignaturePOD() {
+        if (signatureDataURL) {
+            document.getElementById("signatureDisplay").src = signatureDataURL;
+            document.getElementById("signaturePODModal").style.display = "block";
+        }
+    }
+
+    function markPODCompleted() {
+        let podButton = document.getElementById("pod");
+        podButton.classList.remove("pending");
+        podButton.classList.add("completed");
+        podButton.disabled = true;
+        document.getElementById("signaturePODModal").style.display = "none";
+    }
+</script>
+
+</body>
+</html>
