@@ -87,6 +87,12 @@
             width: 48%; 
             margin: 0; 
         }
+        #savedSignature { 
+            width: 80%; /* Reduced size of the signature box */
+            height: auto; 
+            margin: 10px auto; 
+            display: block; 
+        }
     </style>
 </head>
 <body>
@@ -126,7 +132,15 @@
         <img src="db-schenker-logo.png" alt="DB Schenker Logo" class="logo" width="150px">
         <p style="margin-left: 10px;">| landbridge</p>
         <img id="savedSignature" alt="Signature" width="100%">
-        <button onclick="closeThankYou()">Close</button>
+        <button onclick="exitThankYou()">Exit</button>
+    </div>
+
+    <!-- Exit Confirmation Popup -->
+    <div class="overlay" id="exitOverlay"></div>
+    <div class="popup" id="exitPopup">
+        <h3>Thank You!</h3>
+        <p>Hope you enjoyed this digital experience. Thank you for visiting us!</p>
+        <button onclick="closeAllPopups()">Close</button>
     </div>
 
     <!-- Fun Quiz Popups -->
@@ -150,6 +164,10 @@
         signatureCanvas.width = signatureCanvas.offsetWidth;
         signatureCanvas.height = 150;
 
+        // Initialize drawing properties
+        signatureCtx.strokeStyle = "red";
+        signatureCtx.lineWidth = 2;
+
         // Unique QR codes for each button
         const qrCodes = {
             registration: "123456",
@@ -169,7 +187,7 @@
             },
             { 
                 question: "If your shipment is worth over $5,000, will you need to pay customs duties?", 
-                options: ["Yes", "No", "5", "6"], 
+                options: ["Yes", "No"], 
                 answer: "Yes",
                 funFact: "Think of customs duties as a ‘toll fee’—the higher the value, the higher the cost!"
             },
@@ -182,7 +200,7 @@
         ];
         let currentQuizIndex = 0;
 
-        // Signature Capture Fix
+        // Signature Capture Functions
         function startDrawing(event) {
             drawing = true;
             signatureCtx.beginPath();
@@ -190,8 +208,6 @@
             const x = (event.clientX || event.touches[0].clientX) - rect.left;
             const y = (event.clientY || event.touches[0].clientY) - rect.top;
             signatureCtx.moveTo(x, y);
-            signatureCtx.strokeStyle = "red";
-            signatureCtx.lineWidth = 2;
         }
 
         function draw(event) {
@@ -214,9 +230,17 @@
         signatureCanvas.addEventListener("mouseup", stopDrawing);
         signatureCanvas.addEventListener("mouseleave", stopDrawing);
 
-        signatureCanvas.addEventListener("touchstart", startDrawing, false);
-        signatureCanvas.addEventListener("touchmove", draw, false);
-        signatureCanvas.addEventListener("touchend", stopDrawing, false);
+        signatureCanvas.addEventListener("touchstart", (e) => {
+            e.preventDefault(); // Prevent default touch behavior
+            startDrawing(e.touches[0]);
+        }, { passive: false });
+
+        signatureCanvas.addEventListener("touchmove", (e) => {
+            e.preventDefault(); // Prevent default touch behavior
+            draw(e.touches[0]);
+        }, { passive: false });
+
+        signatureCanvas.addEventListener("touchend", stopDrawing);
 
         function clearSignature() {
             signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
@@ -229,9 +253,18 @@
             document.getElementById("thankYouPopup").style.display = "block";
         }
 
-        function closeThankYou() { 
-            document.getElementById("thankYouOverlay").style.display = "none"; 
+        function exitThankYou() {
+            document.getElementById("exitOverlay").style.display = "block";
+            document.getElementById("exitPopup").style.display = "block";
+        }
+
+        function closeAllPopups() {
+            document.getElementById("thankYouOverlay").style.display = "none";
             document.getElementById("thankYouPopup").style.display = "none";
+            document.getElementById("exitOverlay").style.display = "none";
+            document.getElementById("exitPopup").style.display = "none";
+            document.getElementById("signatureOverlay").style.display = "none";
+            document.getElementById("signaturePopup").style.display = "none";
             // Reset the signature button
             document.getElementById("signatureBtn").classList.add("disabled");
             document.getElementById("signatureBtn").setAttribute("disabled", "true");
