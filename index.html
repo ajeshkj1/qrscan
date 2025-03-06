@@ -38,6 +38,7 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.3); 
             width: 90%; 
             max-width: 350px; 
+            font-size: 14px; /* Reduced font size for popups */
         }
         .overlay { 
             display: none; 
@@ -51,6 +52,7 @@
             width: 100%; 
             height: 150px; 
             touch-action: none; 
+            margin: 10px 0; /* Adjusted margin for top-down layout */
         }
         #qr-reader { 
             width: 100%; 
@@ -61,6 +63,30 @@
             width: 150px; 
             margin-bottom: 10px; 
         }
+        .quiz-option { 
+            margin: 10px 0; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        .quiz-option.correct { background-color: green; color: white; }
+        .quiz-option.incorrect { background-color: red; color: white; }
+        #signature-pad { 
+            width: 100%; 
+            height: 150px; 
+            border: 1px solid black; 
+            background: white; 
+        }
+        .signature-buttons { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-top: 10px; 
+        }
+        .signature-buttons button { 
+            width: 48%; 
+            margin: 0; 
+        }
     </style>
 </head>
 <body>
@@ -68,16 +94,17 @@
     <img src="db-schenker-logo.png" alt="DB Schenker Logo" class="logo"> <!-- Logo added here -->
     <h2>Interactive Event Booth</h2>
 
-    <button id="registrationBtn" onclick="openQRScanner('registration')">Registration</button>
-    <button id="funQuizBtn" onclick="openQRScanner('funQuiz')">Fun Quiz</button>
-    <button id="vrBtn" onclick="openQRScanner('vr')">VR</button>
-    <button id="schenkerConnectBtn" onclick="openQRScanner('schenkerConnect')">SchenkerConnect</button>
-    <button id="smartLogisticsBtn" onclick="openQRScanner('smartLogistics')">Smart Logistics</button>
+    <button id="registrationBtn" onclick="openQRScanner('registration', '123456')">Registration</button>
+    <button id="funQuizBtn" onclick="openQRScanner('funQuiz', '123456')">Fun Quiz</button>
+    <button id="vrBtn" onclick="openQRScanner('vr', '123456')">VR</button>
+    <button id="schenkerConnectBtn" onclick="openQRScanner('schenkerConnect', '123456')">SchenkerConnect</button>
+    <button id="smartLogisticsBtn" onclick="openQRScanner('smartLogistics', '123456')">Smart Logistics</button>
 
     <div class="overlay" id="qrOverlay"></div>
     <div class="popup" id="qrPopup">
         <h3>Scan QR Code</h3>
         <div id="qr-reader"></div>
+        <p id="qrMismatch" style="color: red; display: none;">QR Code Mismatch!</p>
         <button onclick="closeQRScanner()">Close</button>
     </div>
 
@@ -87,17 +114,29 @@
     <div class="popup" id="signaturePopup">
         <h3>Sign Below</h3>
         <canvas id="signature-pad"></canvas>
-        <button onclick="clearSignature()">Clear</button>
-        <button onclick="saveSignature()">Save</button>
+        <div class="signature-buttons">
+            <button onclick="clearSignature()">Clear</button>
+            <button onclick="saveSignature()">Save</button>
+        </div>
     </div>
 
     <div class="overlay" id="thankYouOverlay"></div>
     <div class="popup" id="thankYouPopup">
         <h3>Electronic Proof of Delivery</h3>
-    <img src="db-schenker-logo.png" alt="DB Schenker Logo" class="logo" width="150px">
-    <p style="margin-left: 10px;">| landbridge</p>
+        <img src="db-schenker-logo.png" alt="DB Schenker Logo" class="logo" width="150px">
+        <p style="margin-left: 10px;">| landbridge</p>
         <img id="savedSignature" alt="Signature" width="100%">
         <button onclick="closeThankYou()">Close</button>
+    </div>
+
+    <!-- Fun Quiz Popups -->
+    <div class="overlay" id="quizOverlay"></div>
+    <div class="popup" id="quizPopup">
+        <h3 id="quizQuestion"></h3>
+        <div id="quizOptions"></div>
+        <p id="funFact" style="display: none; font-style: italic;"></p>
+        <button id="nextButton" onclick="showNextQuiz()" style="display: none;">Next</button>
+        <button onclick="closeQuiz()">Close</button>
     </div>
 
     <script>
@@ -107,69 +146,77 @@
         const signatureCanvas = document.getElementById("signature-pad");
         const signatureCtx = signatureCanvas.getContext("2d");
 
-        // Set canvas dimensions to ensure proper touch handling
-        signatureCanvas.width = window.innerWidth - 40;  // Adjust size as per your layout
-        signatureCanvas.height = 150;  // You can adjust this as needed
+        // Set canvas dimensions explicitly
+        signatureCanvas.width = signatureCanvas.offsetWidth;
+        signatureCanvas.height = 150;
 
-        function openQRScanner(action) {
-            currentAction = action;
-            document.getElementById("qrOverlay").style.display = "block";
-            document.getElementById("qrPopup").style.display = "block";
+        // Unique QR codes for each button
+        const qrCodes = {
+            registration: "123456",
+            funQuiz: "123456",
+            vr: "123456",
+            schenkerConnect: "123456",
+            smartLogistics: "123456"
+        };
 
-            scanner = new Html5Qrcode("qr-reader");
-            scanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: 250 },
-                qrCodeMessage => {
-                    if (qrCodeMessage === "123456") {
-                        let button = document.getElementById(action + "Btn");
-                        button.classList.add("completed");
-                        button.innerText = action.replace(/^\w/, c => c.toUpperCase()) + " - Completed";
-                        button.setAttribute("disabled", "true");
-                        // Calling checkAllCompleted to verify if all tasks are completed
-                        checkAllCompleted();
-                        closeQRScanner();
-                    }
-                },
-                errorMessage => { console.log(errorMessage); }
-            );
-        }
-
-        function closeQRScanner() {
-            if (scanner) {
-                scanner.stop().then(() => {
-                    document.getElementById("qrOverlay").style.display = "none";
-                    document.getElementById("qrPopup").style.display = "none";
-                }).catch(err => console.log(err));
+        // Fun Quiz Questions and Answers
+        const funQuiz = [
+            { 
+                question: "Which of the following is a MUST-HAVE document for customs clearance?", 
+                options: ["Your passport","Commercial invoice","Hotel reservation","Travel guidebook"], 
+                answer: "Commercial invoice",
+                funFact: "While a travel guidebook might help you explore, customs officers are more interested in the value of your goods!"
+            },
+            { 
+                question: "If your shipment is worth over $5,000, will you need to pay customs duties?", 
+                options: ["Yes", "No", "5", "6"], 
+                answer: "Yes",
+                funFact: "Think of customs duties as a ‘toll fee’—the higher the value, the higher the cost!"
+            },
+            { 
+                question: "Which of the following items is most likely to be held by customs?", 
+                options: ["Electronics", "Fresh fruits", "Clothing", "Books"], 
+                answer: "Fresh fruits",
+                funFact: "Fresh fruits might carry pests, and customs officers aren’t fans of uninvited ‘guests’!"
             }
-        }
+        ];
+        let currentQuizIndex = 0;
 
-        signatureCanvas.addEventListener("pointerdown", startDrawing);
-        signatureCanvas.addEventListener("pointermove", draw);
-        signatureCanvas.addEventListener("pointerup", stopDrawing);
-
-        // Check for pointer events on mobile devices
-        signatureCanvas.addEventListener("touchstart", startDrawing, false);
-        signatureCanvas.addEventListener("touchmove", draw, false);
-        signatureCanvas.addEventListener("touchend", stopDrawing, false);
-
+        // Signature Capture Fix
         function startDrawing(event) {
             drawing = true;
             signatureCtx.beginPath();
-            signatureCtx.moveTo(event.offsetX, event.offsetY);
+            const rect = signatureCanvas.getBoundingClientRect();
+            const x = (event.clientX || event.touches[0].clientX) - rect.left;
+            const y = (event.clientY || event.touches[0].clientY) - rect.top;
+            signatureCtx.moveTo(x, y);
             signatureCtx.strokeStyle = "red";
             signatureCtx.lineWidth = 2;
         }
 
         function draw(event) {
             if (!drawing) return;
-            signatureCtx.lineTo(event.offsetX, event.offsetY);
+            event.preventDefault(); // Prevent scrolling on touch devices
+            const rect = signatureCanvas.getBoundingClientRect();
+            const x = (event.clientX || event.touches[0].clientX) - rect.left;
+            const y = (event.clientY || event.touches[0].clientY) - rect.top;
+            signatureCtx.lineTo(x, y);
             signatureCtx.stroke();
         }
 
         function stopDrawing() {
             drawing = false;
         }
+
+        // Event listeners for signature canvas
+        signatureCanvas.addEventListener("mousedown", startDrawing);
+        signatureCanvas.addEventListener("mousemove", draw);
+        signatureCanvas.addEventListener("mouseup", stopDrawing);
+        signatureCanvas.addEventListener("mouseleave", stopDrawing);
+
+        signatureCanvas.addEventListener("touchstart", startDrawing, false);
+        signatureCanvas.addEventListener("touchmove", draw, false);
+        signatureCanvas.addEventListener("touchend", stopDrawing, false);
 
         function clearSignature() {
             signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
@@ -185,9 +232,97 @@
         function closeThankYou() { 
             document.getElementById("thankYouOverlay").style.display = "none"; 
             document.getElementById("thankYouPopup").style.display = "none";
+            // Reset the signature button
+            document.getElementById("signatureBtn").classList.add("disabled");
+            document.getElementById("signatureBtn").setAttribute("disabled", "true");
         }
 
-        // This function checks if all the activities are completed and enables the signature button.
+        function openQRScanner(action, expectedCode) {
+            currentAction = action;
+            document.getElementById("qrOverlay").style.display = "block";
+            document.getElementById("qrPopup").style.display = "block";
+            document.getElementById("qrMismatch").style.display = "none";
+
+            scanner = new Html5Qrcode("qr-reader");
+            scanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 250 },
+                qrCodeMessage => {
+                    if (qrCodeMessage === expectedCode) {
+                        let button = document.getElementById(action + "Btn");
+                        button.classList.add("completed");
+                        button.innerText = action.replace(/^\w/, c => c.toUpperCase()) + " - Completed";
+                        button.setAttribute("disabled", "true");
+                        checkAllCompleted();
+                        closeQRScanner();
+                        if (action === "funQuiz") {
+                            startFunQuiz();
+                        }
+                    } else {
+                        document.getElementById("qrMismatch").style.display = "block";
+                    }
+                },
+                errorMessage => { console.log(errorMessage); }
+            );
+        }
+
+        function closeQRScanner() {
+            if (scanner) {
+                scanner.stop().then(() => {
+                    document.getElementById("qrOverlay").style.display = "none";
+                    document.getElementById("qrPopup").style.display = "none";
+                }).catch(err => console.log(err));
+            }
+        }
+
+        function startFunQuiz() {
+            currentQuizIndex = 0;
+            showNextQuiz();
+        }
+
+        function showNextQuiz() {
+            if (currentQuizIndex < funQuiz.length) {
+                const quiz = funQuiz[currentQuizIndex];
+                document.getElementById("quizQuestion").innerText = quiz.question;
+                const quizOptions = document.getElementById("quizOptions");
+                quizOptions.innerHTML = ""; // Clear previous options
+                quiz.options.forEach(option => {
+                    const optionDiv = document.createElement("div");
+                    optionDiv.className = "quiz-option";
+                    optionDiv.innerText = option;
+                    optionDiv.onclick = () => checkAnswer(option, quiz.answer, quiz.funFact);
+                    quizOptions.appendChild(optionDiv);
+                });
+                document.getElementById("quizOverlay").style.display = "block";
+                document.getElementById("quizPopup").style.display = "block";
+                document.getElementById("nextButton").style.display = "none";
+                document.getElementById("funFact").style.display = "none";
+                currentQuizIndex++;
+            } else {
+                closeQuiz();
+            }
+        }
+
+        function checkAnswer(selectedOption, correctAnswer, funFact) {
+            const options = document.querySelectorAll(".quiz-option");
+            options.forEach(option => {
+                if (option.innerText === correctAnswer) {
+                    option.classList.add("correct");
+                } else if (option.innerText === selectedOption) {
+                    option.classList.add("incorrect");
+                }
+                option.onclick = null; // Disable further clicks
+            });
+            document.getElementById("funFact").innerText = funFact;
+            document.getElementById("funFact").style.display = "block";
+            document.getElementById("nextButton").style.display = currentQuizIndex < funQuiz.length ? "block" : "none";
+        }
+
+        function closeQuiz() {
+            document.getElementById("quizOverlay").style.display = "none";
+            document.getElementById("quizPopup").style.display = "none";
+        }
+
         function checkAllCompleted() {
              let buttons = ["registrationBtn", "funQuizBtn", "vrBtn", "schenkerConnectBtn", "smartLogisticsBtn"];
              if (buttons.every(id => document.getElementById(id).classList.contains("completed"))) {
@@ -197,7 +332,6 @@
              }
         }
 
-        // Function to open the signature popup
         function openSignaturePopup() {
             document.getElementById("signatureOverlay").style.display = "block";
             document.getElementById("signaturePopup").style.display = "block";
