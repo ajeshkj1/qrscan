@@ -100,12 +100,13 @@
     <img src="db-schenker-logo.png" alt="DB Schenker Logo" class="logo"> <!-- Logo added here -->
     <h2>Interactive Event Booth</h2>
 
-    <button id="registrationBtn" onclick="openQRScanner('registration', '123456')">Registration</button>
+    <button id="registrationBtn" onclick="openQRScanner('registration', '123456')">Pick up</button>
+    <button id="customsBtn" onclick="openQRScanner('customs', '123456')">Customs Clearance</button>
+    <button id="vrBtn" onclick="openQRScanner('vr', '123456')">Crossborder</button>
+    <button id="schenkerConnectBtn" onclick="openQRScanner('schenkerConnect', '123456')">Transit</button>
+    <button id="smartLogisticsBtn" onclick="openQRScanner('smartLogistics', '123456')">Delivery</button>
     <button id="funQuizBtn" onclick="openQRScanner('funQuiz', '123456')">Fun Quiz</button>
-    <button id="vrBtn" onclick="openQRScanner('vr', '123456')">VR</button>
-    <button id="schenkerConnectBtn" onclick="openQRScanner('schenkerConnect', '123456')">SchenkerConnect</button>
-    <button id="smartLogisticsBtn" onclick="openQRScanner('smartLogistics', '123456')">Smart Logistics</button>
-
+  
     <div class="overlay" id="qrOverlay"></div>
     <div class="popup" id="qrPopup">
         <h3>Scan QR Code</h3>
@@ -114,7 +115,7 @@
         <button onclick="closeQRScanner()">Close</button>
     </div>
 
-    <button id="signatureBtn" class="disabled" onclick="openSignaturePopup()" disabled>Touch Screen (Signature)</button>
+    <button id="signatureBtn" class="disabled" onclick="showThankYou()" disabled>ePOD</button>
 
     <div class="overlay" id="signatureOverlay"></div>
     <div class="popup" id="signaturePopup">
@@ -130,8 +131,8 @@
     <div class="popup" id="thankYouPopup">
         <h3>Electronic Proof of Delivery</h3>
         <img src="db-schenker-logo.png" alt="DB Schenker Logo" class="logo" width="150px">
-        <p style="margin-left: 10px;">| landbridge</p>
-        <img id="savedSignature" alt="Signature" width="100%">
+        <p style="margin-left: 15px;">DB Schenker | landbridge</p>
+       <!-- <img id="savedSignature" alt="Signature" width="100%"> -->
         <button onclick="exitThankYou()">Exit</button>
     </div>
 
@@ -171,6 +172,7 @@
         // Unique QR codes for each button
         const qrCodes = {
             registration: "123456",
+            customs: "123456",
             funQuiz: "123456",
             vr: "123456",
             schenkerConnect: "123456",
@@ -281,16 +283,17 @@
                 { facingMode: "environment" },
                 { fps: 10, qrbox: 250 },
                 qrCodeMessage => {
-                    if (qrCodeMessage === expectedCode) {
-                        let button = document.getElementById(action + "Btn");
-                        button.classList.add("completed");
-                        button.innerText = action.replace(/^\w/, c => c.toUpperCase()) + " - Completed";
-                        button.setAttribute("disabled", "true");
-                        checkAllCompleted();
-                        closeQRScanner();
-                        if (action === "funQuiz") {
-                            startFunQuiz();
-                        }
+if (qrCodeMessage === expectedCode) {
+    let button = document.getElementById(action + "Btn");
+    button.classList.add("completed");
+    button.innerText = button.innerText + " - Completed"; // Fixes the text update
+    button.setAttribute("disabled", "true");
+    checkAllCompleted();
+    closeQRScanner();
+    if (action === "funQuiz") {
+        startFunQuiz();
+    }
+
                     } else {
                         document.getElementById("qrMismatch").style.display = "block";
                     }
@@ -314,27 +317,32 @@
         }
 
         function showNextQuiz() {
-            if (currentQuizIndex < funQuiz.length) {
-                const quiz = funQuiz[currentQuizIndex];
-                document.getElementById("quizQuestion").innerText = quiz.question;
-                const quizOptions = document.getElementById("quizOptions");
-                quizOptions.innerHTML = ""; // Clear previous options
-                quiz.options.forEach(option => {
-                    const optionDiv = document.createElement("div");
-                    optionDiv.className = "quiz-option";
-                    optionDiv.innerText = option;
-                    optionDiv.onclick = () => checkAnswer(option, quiz.answer, quiz.funFact);
-                    quizOptions.appendChild(optionDiv);
-                });
-                document.getElementById("quizOverlay").style.display = "block";
-                document.getElementById("quizPopup").style.display = "block";
-                document.getElementById("nextButton").style.display = "none";
-                document.getElementById("funFact").style.display = "none";
-                currentQuizIndex++;
-            } else {
-                closeQuiz();
-            }
-        }
+        if (currentQuizIndex < funQuiz.length) {
+        const quiz = funQuiz[currentQuizIndex];
+        document.getElementById("quizQuestion").innerText = quiz.question;
+        const quizOptions = document.getElementById("quizOptions");
+        quizOptions.innerHTML = ""; // Clear previous options
+        quiz.options.forEach(option => {
+            const optionDiv = document.createElement("div");
+            optionDiv.className = "quiz-option";
+            optionDiv.innerText = option;
+            optionDiv.onclick = () => checkAnswer(option, quiz.answer, quiz.funFact);
+            quizOptions.appendChild(optionDiv);
+        });
+
+        document.getElementById("quizOverlay").style.display = "block";
+        document.getElementById("quizPopup").style.display = "block";
+        document.getElementById("nextButton").style.display = "none";
+        document.getElementById("funFact").style.display = "none";
+
+        // Hide close button for the first two quizzes
+        document.querySelector("#quizPopup button:last-child").style.display = (currentQuizIndex < 2) ? "none" : "block";
+
+        currentQuizIndex++;
+      } else {
+        closeQuiz();
+      }
+      }
 
         function checkAnswer(selectedOption, correctAnswer, funFact) {
             const options = document.querySelectorAll(".quiz-option");
@@ -357,7 +365,7 @@
         }
 
         function checkAllCompleted() {
-             let buttons = ["registrationBtn", "funQuizBtn", "vrBtn", "schenkerConnectBtn", "smartLogisticsBtn"];
+             let buttons = ["registrationBtn","customsBtn", "funQuizBtn", "vrBtn", "schenkerConnectBtn", "smartLogisticsBtn"];
              if (buttons.every(id => document.getElementById(id).classList.contains("completed"))) {
                  let signatureButton = document.getElementById("signatureBtn");
                  signatureButton.classList.remove("disabled");
@@ -368,6 +376,11 @@
         function openSignaturePopup() {
             document.getElementById("signatureOverlay").style.display = "block";
             document.getElementById("signaturePopup").style.display = "block";
+        }
+      
+         function showThankYou() {
+            document.getElementById("thankYouOverlay").style.display = "block";
+            document.getElementById("thankYouPopup").style.display = "block";
         }
     </script>
 </body>
