@@ -369,8 +369,15 @@
         }
 
         function showThankYou() {
-            document.getElementById("thankYouOverlay").style.display = "block";
-            document.getElementById("thankYouPopup").style.display = "block";
+            const signatureBtn = document.getElementById("signatureBtn");
+                signatureBtn.classList.remove("disabled"); // Remove disabled styling
+                signatureBtn.classList.add("completed");   // Add green background
+                signatureBtn.textContent = "ePOD - Completed";
+                signatureBtn.disabled = true;              // Keep button disabled
+        
+                document.getElementById("thankYouOverlay").style.display = "block";
+                document.getElementById("thankYouPopup").style.display = "block";
+        }
         }
     </script>
 </body>
