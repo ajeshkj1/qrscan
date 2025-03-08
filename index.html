@@ -93,6 +93,11 @@
             margin: 10px auto; 
             display: block; 
         }
+          /* Add this CSS rule */
+    #signatureBtn.completed { 
+        background-color: green !important; 
+        color: white !important;
+    }
     </style>
 </head>
 <body>
@@ -154,7 +159,7 @@
         <div id="quizOptions"></div>
         <p id="funFact" style="display: none; font-style: italic;"></p>
         <button id="nextButton" onclick="showNextQuiz()" style="display: none;">Next</button>
-        <button onclick="closeQuiz()">Close</button>
+        <button id="quizCloseButton" onclick="closeQuiz()" style="display: none;">Close</button>
     </div>
 
     <script>
@@ -318,9 +323,12 @@
         function showNextQuiz() {
             if (currentQuizIndex < funQuiz.length) {
                 const quiz = funQuiz[currentQuizIndex];
+                const isLastQuestion = currentQuizIndex === funQuiz.length - 1;
+                
                 document.getElementById("quizQuestion").textContent = quiz.question;
                 const quizOptions = document.getElementById("quizOptions");
                 quizOptions.innerHTML = "";
+                
                 quiz.options.forEach(option => {
                     const optionDiv = document.createElement("div");
                     optionDiv.className = "quiz-option";
@@ -328,10 +336,15 @@
                     optionDiv.onclick = () => checkAnswer(option, quiz.answer, quiz.funFact);
                     quizOptions.appendChild(optionDiv);
                 });
+
+                // Show close button only on last question
+                document.getElementById("quizCloseButton").style.display = isLastQuestion ? "block" : "none";
+                
                 document.getElementById("quizOverlay").style.display = "block";
                 document.getElementById("quizPopup").style.display = "block";
                 document.getElementById("nextButton").style.display = "none";
                 document.getElementById("funFact").style.display = "none";
+                
                 currentQuizIndex++;
             } else {
                 closeQuiz();
