@@ -164,7 +164,7 @@
        #signatureBtn.completed { 
           background-color: #2a722a !important;
           color: white !important;
-    }
+        }
     </style>
 </head>
 <body>
@@ -232,7 +232,6 @@
         </div>
     </div>
 
-    <!-- JavaScript remains exactly the same as original -->
     <script>
         // Welcome Popup Functions
         function closeWelcomePopup() {
@@ -368,6 +367,9 @@
                         checkAllCompleted();
                         closeQRScanner();
                         if (action === "funQuiz") startFunQuiz();
+
+                        // Save completed buttons to local storage
+                        saveCompletedButtons();
                     } else {
                         document.getElementById("qrMismatch").style.display = "block";
                     }
@@ -459,6 +461,56 @@
             document.getElementById("thankYouOverlay").style.display = "block";
             document.getElementById("thankYouPopup").style.display = "block";
         }
+
+        // Local Storage Logic
+        function saveCompletedButtons() {
+            const completedButtons = [];
+            const buttons = ["registrationBtn", "customsBtn", "funQuizBtn", "vrBtn", "schenkerConnectBtn", "smartLogisticsBtn"];
+            
+            buttons.forEach(id => {
+                const button = document.getElementById(id);
+                if (button.classList.contains("completed")) {
+                    completedButtons.push(id);
+                }
+            });
+
+            const storageData = {
+                completedButtons: completedButtons,
+                timestamp: new Date().getTime()
+            };
+
+            localStorage.setItem("completedButtons", JSON.stringify(storageData));
+        }
+
+        function restoreCompletedButtons() {
+            const storageData = JSON.parse(localStorage.getItem("completedButtons"));
+            
+            if (storageData && storageData.completedButtons) {
+                const currentTime = new Date().getTime();
+                const storedTime = storageData.timestamp;
+                const expirationTime = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+                if (currentTime - storedTime < expirationTime) {
+                    storageData.completedButtons.forEach(id => {
+                        const button = document.getElementById(id);
+                        if (button) {
+                            button.classList.add("completed");
+                            button.textContent = button.textContent + " - Completed";
+                            button.disabled = true;
+                        }
+                    });
+
+                    checkAllCompleted();
+                } else {
+                    localStorage.removeItem("completedButtons");
+                }
+            }
+        }
+
+        // Restore completed buttons on page load
+        window.onload = function() {
+            restoreCompletedButtons();
+        };
     </script>
 </body>
 </html>
