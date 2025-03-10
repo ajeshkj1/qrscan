@@ -1,169 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags for character encoding and responsive design -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Title of the webpage -->
     <title>Singapore Landbridge Event</title>
+    <!-- External script for QR code scanning functionality -->
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Internal CSS for styling the webpage -->
     <style>
+        /* General body styling */
         body { 
-            font-family: 'Segoe UI', Arial, sans-serif;
-            text-align: center; 
-            background-color: teal; 
-            padding: 15px; 
-            color: white;
-            line-height: 1.6;
-            font-size: 16px;
+            font-family: 'Segoe UI', Arial, sans-serif; /* Font family */
+            text-align: center; /* Center-align text */
+            background-color: teal; /* Background color */
+            padding: 15px; /* Padding around the content */
+            color: white; /* Text color */
+            line-height: 1.6; /* Line height for better readability */
+            font-size: 16px; /* Base font size */
         }
+        /* Styling for h2 headings */
         h2 {
-            font-size: 24px;
-            margin: 20px 0;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            font-size: 24px; /* Font size */
+            margin: 20px 0; /* Margin for spacing */
+            font-weight: 600; /* Font weight */
+            letter-spacing: 0.5px; /* Letter spacing */
         }
+        /* Styling for buttons */
         button { 
-            margin: 12px auto; 
-            padding: 15px 25px; 
-            font-size: 16px; 
-            cursor: pointer; 
-            width: 90%; 
-            max-width: 320px; 
-            display: block; 
-            border: none; 
-            border-radius: 8px;
-            letter-spacing: 0.5px;
-            transition: opacity 0.3s ease;
+            margin: 12px auto; /* Margin for spacing */
+            padding: 15px 25px; /* Padding inside the button */
+            font-size: 16px; /* Font size */
+            cursor: pointer; /* Pointer cursor on hover */
+            width: 90%; /* Width of the button */
+            max-width: 320px; /* Maximum width */
+            display: block; /* Display as block element */
+            border: none; /* No border */
+            border-radius: 8px; /* Rounded corners */
+            letter-spacing: 0.5px; /* Letter spacing */
+            transition: opacity 0.3s ease; /* Smooth transition for opacity */
         }
+        /* Styling for button when active (clicked) */
         button:active {
-            opacity: 0.8;
+            opacity: 0.8; /* Reduce opacity */
         }
+        /* Styling for completed buttons */
         .completed { 
-            background-color: #2a722a; 
-            color: white; 
-            cursor: not-allowed;
+            background-color: #2a722a; /* Green background */
+            color: white; /* White text */
+            cursor: not-allowed; /* Not-allowed cursor */
         }
+        /* Styling for disabled buttons */
         .disabled { 
-            background-color: #666; 
-            color: white; 
-            cursor: not-allowed;
+            background-color: #666; /* Gray background */
+            color: white; /* White text */
+            cursor: not-allowed; /* Not-allowed cursor */
         }
+        /* Styling for popup windows */
         .popup { 
-            display: none; 
-            position: fixed; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%);
-            background: white; 
-            color: #333;
-            padding: 25px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-            width: 90%; 
-            max-width: 400px; 
-            font-size: 16px;
-            line-height: 1.5;
+            display: none; /* Hidden by default */
+            position: fixed; /* Fixed position */
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Center the popup */
+            background: white; /* White background */
+            color: #333; /* Dark text color */
+            padding: 25px; /* Padding inside the popup */
+            border-radius: 12px; /* Rounded corners */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); /* Shadow effect */
+            width: 90%; /* Width of the popup */
+            max-width: 400px; /* Maximum width */
+            font-size: 16px; /* Font size */
+            line-height: 1.5; /* Line height */
         }
+        /* Styling for h3 headings inside popups */
         .popup h3 {
-            font-size: 20px;
-            margin-bottom: 15px;
-            font-weight: 600;
-            color: #1a1a1a;
+            font-size: 20px; /* Font size */
+            margin-bottom: 15px; /* Margin for spacing */
+            font-weight: 600; /* Font weight */
+            color: #1a1a1a; /* Dark text color */
         }
+        /* Styling for overlay background */
         .overlay { 
-            display: none; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: rgba(0,0,0,0.6); 
+            display: none; /* Hidden by default */
+            position: fixed; /* Fixed position */
+            top: 0; /* Top of the screen */
+            left: 0; /* Left of the screen */
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            background: rgba(0,0,0,0.6); /* Semi-transparent black background */
         }
+        /* Styling for canvas elements */
         canvas { 
-            border: 1px solid #ccc; 
-            width: 100%; 
-            height: 150px; 
-            touch-action: none; 
-            margin: 15px 0;
-            border-radius: 8px;
+            border: 1px solid #ccc; /* Border around the canvas */
+            width: 100%; /* Full width */
+            height: 150px; /* Height of the canvas */
+            touch-action: none; /* Disable touch actions */
+            margin: 15px 0; /* Margin for spacing */
+            border-radius: 8px; /* Rounded corners */
         }
+        /* Styling for QR reader container */
         #qr-reader { 
-            width: 100%; 
-            max-width: 300px; 
-            margin: 15px auto; 
+            width: 100%; /* Full width */
+            max-width: 300px; /* Maximum width */
+            margin: 15px auto; /* Center the container */
         }
+        /* Styling for logo images */
         .logo { 
-            max-width: 250px; 
-            width: 80%;
-            margin: 20px 0; 
+            max-width: 250px; /* Maximum width */
+            width: 80%; /* Width relative to container */
+            margin: 20px 0; /* Margin for spacing */
         }
+        /* Styling for quiz options */
         .quiz-option { 
-            margin: 12px 0; 
-            padding: 15px; 
-            border: 1px solid #ddd; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 16px;
-            transition: transform 0.2s ease;
+            margin: 12px 0; /* Margin for spacing */
+            padding: 15px; /* Padding inside the option */
+            border: 1px solid #ddd; /* Border around the option */
+            border-radius: 8px; /* Rounded corners */
+            cursor: pointer; /* Pointer cursor on hover */
+            font-size: 16px; /* Font size */
+            transition: transform 0.2s ease; /* Smooth transition for transform */
         }
+        /* Styling for quiz options when active (clicked) */
         .quiz-option:active {
-            transform: scale(0.98);
+            transform: scale(0.98); /* Slightly scale down */
         }
+        /* Styling for correct quiz options */
         .quiz-option.correct { 
-            background-color: #2a722a; 
-            color: white; 
-            border-color: #2a722a;
+            background-color: #2a722a; /* Green background */
+            color: white; /* White text */
+            border-color: #2a722a; /* Green border */
         }
+        /* Styling for incorrect quiz options */
         .quiz-option.incorrect { 
-            background-color: #c0392b; 
-            color: white; 
-            border-color: #c0392b;
+            background-color: #c0392b; /* Red background */
+            color: white; /* White text */
+            border-color: #c0392b; /* Red border */
         }
+        /* Styling for signature pad */
         #signature-pad { 
-            width: 100%; 
-            height: 150px; 
-            border: 1px solid #ccc; 
-            background: white; 
-            border-radius: 8px;
+            width: 100%; /* Full width */
+            height: 150px; /* Height of the signature pad */
+            border: 1px solid #ccc; /* Border around the pad */
+            background: white; /* White background */
+            border-radius: 8px; /* Rounded corners */
         }
+        /* Styling for signature buttons container */
         .signature-buttons { 
-            display: flex; 
-            justify-content: space-between; 
-            margin-top: 15px; 
-            gap: 10px;
+            display: flex; /* Flexbox layout */
+            justify-content: space-between; /* Space between buttons */
+            margin-top: 15px; /* Margin for spacing */
+            gap: 10px; /* Gap between buttons */
         }
+        /* Styling for signature buttons */
         .signature-buttons button { 
-            width: 100%; 
-            margin: 0; 
-            padding: 12px;
-            font-size: 16px;
+            width: 100%; /* Full width */
+            margin: 0; /* No margin */
+            padding: 12px; /* Padding inside the button */
+            font-size: 16px; /* Font size */
         }
+        /* Styling for saved signature image */
         #savedSignature { 
-            width: 80%; 
-            height: auto; 
-            margin: 15px auto; 
-            display: block; 
-            border-radius: 8px;
+            width: 80%; /* Width relative to container */
+            height: auto; /* Auto height */
+            margin: 15px auto; /* Center the image */
+            display: block; /* Display as block element */
+            border-radius: 8px; /* Rounded corners */
         }
+        /* Styling for QR mismatch message */
         #qrMismatch {
-            color: #c0392b;
-            margin: 15px 0;
-            font-weight: 500;
-            font-size: 16px;
+            color: #c0392b; /* Red text color */
+            margin: 15px 0; /* Margin for spacing */
+            font-weight: 500; /* Font weight */
+            font-size: 16px; /* Font size */
         }
+        /* Styling for fun facts */
         .fun-fact {
-            font-size: 15px;
-            line-height: 1.4;
-            margin: 15px 0;
-            color: #666;
+            font-size: 15px; /* Font size */
+            line-height: 1.4; /* Line height */
+            margin: 15px 0; /* Margin for spacing */
+            color: #666; /* Gray text color */
         }
+        /* Styling for paragraphs inside thank you popup */
         #thankYouPopup p {
-            font-size: 17px;
-            margin: 20px 0;
-            color: #444;
+            font-size: 17px; /* Font size */
+            margin: 20px 0; /* Margin for spacing */
+            color: #444; /* Dark text color */
         }
+        /* Styling for completed signature button */
        #signatureBtn.completed { 
-          background-color: #2a722a !important;
-          color: white !important;
+          background-color: #2a722a !important; /* Green background */
+          color: white !important; /* White text */
         }
     </style>
 </head>
@@ -176,9 +204,11 @@
         <button onclick="closeWelcomePopup()">Get Started</button>
     </div>
 
+    <!-- Logo and heading -->
     <img src="db-schenker-logo.png" alt="DB Schenker Logo" class="logo">
     <h2>Interactive Event Booth</h2>
 
+    <!-- Buttons for different activities -->
     <button id="registrationBtn" onclick="openQRScanner('registration', '123456')">Pick up</button>
     <button id="customsBtn" onclick="openQRScanner('customs', '123456')">Customs Clearance</button>
     <button id="vrBtn" onclick="openQRScanner('vr', '123456')">Crossborder</button>
@@ -186,6 +216,7 @@
     <button id="smartLogisticsBtn" onclick="openQRScanner('smartLogistics', '123456')">Delivery</button>
     <button id="funQuizBtn" onclick="openQRScanner('funQuiz', '123456')">Fun Quiz</button>
 
+    <!-- QR Scanner Popup -->
     <div class="overlay" id="qrOverlay"></div>
     <div class="popup" id="qrPopup">
         <h3>Scan QR Code</h3>
@@ -194,8 +225,10 @@
         <button onclick="closeQRScanner()">Close Scanner</button>
     </div>
 
+    <!-- Signature Button -->
     <button id="signatureBtn" class="disabled" onclick="showThankYou()" disabled>ePOD</button>
 
+    <!-- Signature Popup -->
     <div class="overlay" id="signatureOverlay"></div>
     <div class="popup" id="signaturePopup">
         <h3>Sign Below</h3>
@@ -206,6 +239,7 @@
         </div>
     </div>
 
+    <!-- Thank You Popup -->
     <div class="overlay" id="thankYouOverlay"></div>
     <div class="popup" id="thankYouPopup">
         <h2>Electronic Proof of Delivery</h2>
@@ -214,6 +248,7 @@
         <button onclick="exitThankYou()">Finish Experience</button>
     </div>
 
+    <!-- Exit Popup -->
     <div class="overlay" id="exitOverlay"></div>
     <div class="popup" id="exitPopup">
         <h3>Thank You!</h3>
@@ -221,6 +256,7 @@
         <button onclick="closeAllPopups()">Close</button>
     </div>
 
+    <!-- Quiz Popup -->
     <div class="overlay" id="quizOverlay"></div>
     <div class="popup" id="quizPopup">
         <h3 id="quizQuestion"></h3>
@@ -307,7 +343,7 @@
             drawing = false;
         }
 
-        // Event Listeners
+        // Event Listeners for Signature Pad
         signatureCanvas.addEventListener("mousedown", startDrawing);
         signatureCanvas.addEventListener("mousemove", draw);
         signatureCanvas.addEventListener("mouseup", stopDrawing);
@@ -322,10 +358,12 @@
         }, { passive: false });
         signatureCanvas.addEventListener("touchend", stopDrawing);
 
+        // Function to clear the signature
         function clearSignature() {
             signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
         }
 
+        // Function to save the signature
         function saveSignature() {
             const dataUrl = signatureCanvas.toDataURL();
             document.getElementById("savedSignature").src = dataUrl;
@@ -333,7 +371,7 @@
             document.getElementById("thankYouPopup").style.display = "block";
         }
 
-        // Popup Management
+        // Popup Management Functions
         function exitThankYou() {
             document.getElementById("exitOverlay").style.display = "block";
             document.getElementById("exitPopup").style.display = "block";
@@ -460,12 +498,15 @@
             signatureBtn.disabled = true;
             document.getElementById("thankYouOverlay").style.display = "block";
             document.getElementById("thankYouPopup").style.display = "block";
+
+            // Save completed buttons to local storage
+            saveCompletedButtons();
         }
 
         // Local Storage Logic
         function saveCompletedButtons() {
             const completedButtons = [];
-            const buttons = ["registrationBtn", "customsBtn", "funQuizBtn", "vrBtn", "schenkerConnectBtn", "smartLogisticsBtn"];
+            const buttons = ["registrationBtn", "customsBtn", "funQuizBtn", "vrBtn", "schenkerConnectBtn", "smartLogisticsBtn", "signatureBtn"];
             
             buttons.forEach(id => {
                 const button = document.getElementById(id);
@@ -488,8 +529,9 @@
             if (storageData && storageData.completedButtons) {
                 const currentTime = new Date().getTime();
                 const storedTime = storageData.timestamp;
-                const expirationTime = 30 * 60 * 1000; // 30 minutes in milliseconds
-
+                //const expirationTime = 30 * 60  * 1000; // 30 minutes in milliseconds
+                //const expirationTime = 30 * 60 * 60 * 1000; // 3hrs in milliseconds
+                
                 if (currentTime - storedTime < expirationTime) {
                     storageData.completedButtons.forEach(id => {
                         const button = document.getElementById(id);
